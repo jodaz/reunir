@@ -34,6 +34,10 @@ Keep this file in the repo and tick boxes as they land.
   - [ ] `UPSTASH_REDIS_REST_URL`
   - [ ] `UPSTASH_REDIS_REST_TOKEN` (**secret**)
   - [ ] Confirm `CACHE_TTL_SECONDS` (default 60) is acceptable.
+  - **Note:** the Cycle 3 cache + circuit breaker already work *without* Upstash (in-memory
+    per-isolate fallback). Upstash is **required for production correctness** on Cloudflare
+    Workers — without it, cache/breaker state is per-isolate so the politeness guarantees and
+    (Cycle 4) rate limits won't hold across the fleet. Provision before real traffic.
 - [ ] **Session token secret:** generate a strong random `SESSION_TOKEN_SECRET`
       (e.g. `openssl rand -base64 32`) — **secret**, never committed.
 - [ ] **Domain + DNS + TLS:** point the production domain at the Worker; enable

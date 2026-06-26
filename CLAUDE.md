@@ -70,6 +70,8 @@ The app's own API must not become a free scraping target, *and* must not over-fo
 ## Politeness to upstreams
 These are volunteers' apps. Rate-limit and cache outbound calls, use per-source timeouts + backoff + a circuit breaker on repeated 5xx, and identify the client with a descriptive User-Agent + contact URL. A wave of searches must never knock a source offline.
 
+**Implemented (Cycle 3).** All outbound calls go through `src/lib/http.ts` (the single chokepoint): per-attempt timeout, bounded retry with exponential backoff + jitter on transient failures only (network/timeout/5xx/429, honors `Retry-After`; never retries 4xx except 429), and a per-source circuit breaker (`src/lib/breaker.ts`) that fast-fails when OPEN so a dead source surfaces as its "offline" lamp without stalling the others. `src/lib/cache.ts` (wired via the `withGateway` cache step) caches by **normalized query** — Upstash Redis REST when `UPSTASH_*` env is set, in-memory TTL+LRU fallback otherwise — so hammering *our* API never amplifies to the upstreams. Tunables live in `env.ts` (`UPSTREAM_TIMEOUT_MS`, `UPSTREAM_MAX_ATTEMPTS`, `UPSTREAM_BACKOFF_*`, `BREAKER_*`, `CACHE_TTL_SECONDS`). Breaker + in-memory cache state are per-isolate on Workers (best-effort); the durable-via-Upstash seam is in place for when scale warrants it.
+
 ## Sensitivity
 
 Real personal data about missing/found disaster victims (names, phones, photos, ID numbers). Don't commit scraped dumps, keep contact details and cédulas out of logs and sample fixtures, and keep them out of the canonical `Person` served to clients.
