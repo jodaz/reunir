@@ -13,3 +13,6 @@ import { getNotConnected } from "@/adapters/vtb";
 export const GET = withGateway(async () => {
   return NextResponse.json(getNotConnected(), { status: 200 });
 });
+
+// CORS preflight: the same gateway fn branches on OPTIONS → preflight response (PRD §5.2).
+export const OPTIONS = GET;

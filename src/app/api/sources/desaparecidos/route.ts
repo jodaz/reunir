@@ -23,3 +23,6 @@ export const GET = withGateway(async (_req, query) => {
     );
   }
 });
+
+// CORS preflight: the same gateway fn branches on OPTIONS → preflight response (PRD §5.2).
+export const OPTIONS = GET;
