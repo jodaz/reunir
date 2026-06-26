@@ -52,6 +52,15 @@ Keep this file in the repo and tick boxes as they land.
       can be plain Workers vars.
 - [ ] Confirm **per-IP / per-token rate limiting** returns `429 + Retry-After` once wired
       (tighter on deep pagination) — `RATE_LIMIT_PER_MIN` default 30.
+- [ ] **Prod-boot invariants (Cycle 4 fail-closed rules) — do NOT skip:**
+  - [ ] **Do NOT set `GATE_DISABLED` in production.** It only exists to run ungated in local
+        dev; with secrets present the gate is active regardless, but never ship it set.
+  - [ ] `TURNSTILE_SECRET_KEY` + `SESSION_TOKEN_SECRET` **must** be set in prod, or the API
+        refuses to serve (fail-closed by default — that's intended).
+  - [ ] `ALLOWED_ORIGIN` is **required** in prod (no localhost default) or requests 403.
+  - [ ] **Upstash is required** in prod when the gate is active: the rate limiter refuses a
+        prod boot on the in-memory backend (per-isolate limits don't hold across the fleet).
+  - [ ] Optional `TURNSTILE_ACTION` — if set, the widget sends it and siteverify must echo it.
 
 ## Cycle 5 — hardening (WAF, Bot Management, monitoring)
 
