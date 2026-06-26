@@ -28,7 +28,7 @@ npm run test       # Vitest (unit tests; mapping/fixtures land in Cycle 1)
 
 ## Planned stack (decided in PRD §2)
 
-Next.js (App Router) + TypeScript · TanStack Query (`useQueries` for parallel per-source loading) · Zod (typed boundary at each adapter) · CSS Modules · Upstash Redis or `unstable_cache` (server-side politeness cache) · Cloudflare Turnstile (issues the session token the API requires) · Vercel or Cloudflare Pages. A datastore (Postgres + `pg_trgm` / D1) is **not** a day-one dependency — add only when moving off live fan-out.
+Next.js (App Router) + TypeScript · TanStack Query (`useQueries` for parallel per-source loading) · Zod (typed boundary at each adapter) · CSS Modules · Upstash Redis or `unstable_cache` (server-side politeness cache) · Cloudflare Turnstile (issues the session token the API requires) · **Cloudflare** hosting — Workers via the OpenNext adapter (`@opennextjs/cloudflare`), see ADR 0003. A datastore (Postgres + `pg_trgm` / D1) is **not** a day-one dependency — add only when moving off live fan-out.
 
 ## Architecture
 

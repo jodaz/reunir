@@ -48,7 +48,7 @@ One search box, results from every source, with clear provenance back to the ori
 | Styling | **CSS Modules** | Port existing CSS as-is, no rewrite churn |
 | Cache | **Upstash Redis** (or `unstable_cache`) | Server-side politeness cache |
 | Bot gate | **Cloudflare Turnstile** | Issues the session token the API requires (see §5) |
-| Hosting | **Vercel** (or Cloudflare Pages + Workers) | Edge, cron later for scheduled sync |
+| Hosting | **Cloudflare** (Workers via OpenNext adapter — see ADR 0003) | One ecosystem with Turnstile + WAF/Bot Management; edge, cron later for scheduled sync |
 
 Add a datastore (Postgres + `pg_trgm`, or Cloudflare D1) **only** when you move from live
 fan-out to a cached/aggregated store. Not a day-one dependency.

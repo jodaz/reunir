@@ -52,7 +52,8 @@ export async function fetchUpstream(
       method: "GET",
       headers: {
         "User-Agent": env.REUNIR_USER_AGENT,
-        From: env.REUNIR_CONTACT_URL,
+        // HTTP `From` wants a bare email; REUNIR_CONTACT_URL may be a `mailto:` URL.
+        From: env.REUNIR_CONTACT_URL.replace(/^mailto:/, ""),
         Accept: "application/json",
         ...headers,
       },
