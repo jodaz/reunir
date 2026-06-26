@@ -17,8 +17,8 @@ import {
  *   - `idle`          — query disabled (no/too-short search yet).
  *   - `searching`     — request in flight.
  *   - `results`       — succeeded with N `Person` items.
- *   - `not_connected` — Source B's structured stub (ADR 0001).
- *   - `error`         — request failed (incl. the A/C `501` placeholders) → *sin conexión*.
+ *   - `not_connected` — upstream we can't lawfully consume (currently Source A; see ADR 0004).
+ *   - `error`         — request failed (e.g. an upstream 502) → *sin conexión*.
  */
 export type SourcePhase =
   | "idle"
@@ -32,7 +32,7 @@ export interface SourceState {
   label: string;
   phase: SourcePhase;
   count: number;
-  /** Short user-facing reason, e.g. Source B's "Fuente no conectada". */
+  /** Short user-facing reason, e.g. a not-connected source's "Fuente no conectada". */
   reason?: string;
 }
 

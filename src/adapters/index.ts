@@ -1,8 +1,10 @@
 /**
  * Adapter registry — maps a source letter to its module.
  *
- * `a` (desaparecidos) and `c` (terremoto) expose a raw schema + `mapToPerson` (live
- * paging lands in Cycle 1). `b` (vtb) is a "not connected" stub by design (ADR 0001).
+ * `c` (terremoto) and `b` (vtb) are LIVE: each exposes a raw schema + `mapToPerson` + a
+ * `fetchPage`. `a` (desaparecidos) keeps its schema + `mapToPerson` (audited, ready to
+ * reconnect) but its ROUTE returns a "not connected" stub — A's `/api/personas` now requires
+ * a reCAPTCHA token we don't bypass, so `getNotConnected` is served instead of `fetchPage`.
  */
 
 import * as desaparecidos from "@/adapters/desaparecidos";

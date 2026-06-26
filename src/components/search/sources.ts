@@ -11,9 +11,9 @@ import type {
  * Order here is the display order in the lamp strip. Keys match the canonical `Person.source`
  * letters ("a" | "b" | "c"); `endpoint` is the route segment under `/api/sources/`.
  *
- * Source B is "not connected" by design (ADR 0001): its endpoint returns a
- * `NotConnectedResponse`, never `Person[]`. The fetcher returns a discriminated union so the
- * UI branches on the shape rather than guessing.
+ * A source whose upstream we can't lawfully consume returns a `NotConnectedResponse` instead
+ * of `Person[]` (currently Source A — reCAPTCHA-gated; see ADR 0004). The fetcher returns a
+ * discriminated union so the UI branches on the shape rather than guessing.
  */
 
 export type SourceKey = "a" | "b" | "c";
@@ -37,7 +37,7 @@ export const SOURCES: readonly SourceMeta[] = [
 
 export type SourceResult = ProxyResponse | NotConnectedResponse;
 
-/** True when the success payload is the structured "not connected" state (Source B). */
+/** True when the success payload is the structured "not connected" state (e.g. Source A). */
 export function isNotConnected(
   data: SourceResult,
 ): data is NotConnectedResponse {
