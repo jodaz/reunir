@@ -97,9 +97,9 @@ Each handler: fetch upstream → repair encoding → Zod-validate raw shape → 
 
 | Source | Shape | Notes |
 |---|---|---|
-| **A — desaparecidos** | Clean JSON, `q`, paginated | `estado: localizado → found`, else `missing` |
-| **B — venezuelatebusca** | Remix turbo-stream + Turnstile | Parse server-side **only**; needs an authorized feed. Do **not** automate past Turnstile. Returns "not connected" until sorted. |
-| **C — terremotovenezuela** | Clean JSON, `q`, paginated | `resolvedAt` present → `found`, else `missing` |
+| **A — desaparecidos** | Clean JSON (if reachable) | **reCAPTCHA-gated → "not connected"** (ADR 0004). Returns `403 "Verificación reCAPTCHA requerida"`; we don't bypass it. Adapter kept for a sanctioned feed. |
+| **B — venezuelatebusca** | Remix turbo-stream | **Live, PII-stripped** (ADR 0004). Reads are open (Turnstile only guards submission); decode turbo-stream → `Person`, **dropping cédula + reporter contact**. `firstName`+`lastName` → name. |
+| **C — terremotovenezuela** | Clean JSON, `q`, paginated | **Primary source.** `resolvedAt` present → `found`, else `missing`. Federates the shared `reconexion` pool (incl. A's & B's records). |
 
 ### 3.4 Encoding repair
 The mojibake (`JosÃ©`, `DÃ­az`) is double-decoded UTF-8. Fix it at the byte boundary —
