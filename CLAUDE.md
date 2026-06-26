@@ -8,14 +8,17 @@ Scaffold (Cycle 0 / Milestone 1) has landed: Next.js (App Router, TypeScript, `s
 
 ### Commands
 
+This repo uses **pnpm** (pinned via `packageManager` in `package.json`); do not use npm/yarn.
+
 ```bash
-npm install        # install deps
-npm run dev        # start the dev server (http://localhost:3000)
-npm run build      # production build
-npm run start      # serve the production build
-npm run lint       # ESLint (eslint-config-next)
-npm run format     # Prettier (writes in place; planning docs are ignored)
-npm run test       # Vitest (unit tests; mapping/fixtures land in Cycle 1)
+pnpm install        # install deps
+pnpm dev            # start the dev server (http://localhost:3000)
+pnpm build          # production build
+pnpm start          # serve the production build
+pnpm lint           # ESLint (eslint-config-next)
+pnpm typecheck      # tsc --noEmit (type-check only, no emit)
+pnpm format         # Prettier (writes in place; planning docs are ignored)
+pnpm test           # Vitest (unit tests)
 ```
 
 ## What this project is

@@ -229,7 +229,7 @@ route.ts  =  withGateway(async (req, {q, page, pageSize}) => adapter.fetchPage(.
 
 ## 7. M1 done criteria (from tasks/cycle-0-foundations.md)
 
-- `npm run dev` boots; `npm run lint` passes; `npm run build` succeeds.
+- `pnpm dev` boots; `pnpm lint` passes; `pnpm build` succeeds.
 - `Person`/`Status`/`ProxyResponse` compile and are importable as the single source of truth.
 - Zod `PersonSchema`/`ProxyResponseSchema`/`QuerySchema` compile; `z.infer<PersonSchema>` matches
   `Person`.
