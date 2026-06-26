@@ -1,15 +1,25 @@
 /**
  * GET /api/sources/desaparecidos — Source A.
  *
- * M1 placeholder: query is validated/capped by the gateway, but live upstream paging is
- * Cycle 1. Returns a typed, empty `ProxyResponse` with HTTP 501 (Not Implemented).
+ * The gateway validates/caps the query (non-empty `q`, `pageSize` <= MAX). The adapter
+ * fetches upstream, repairs encoding, Zod-validates the raw shape, and maps to `Person`
+ * with sensitive fields stripped. Upstream/validation failures return 502 (no detail
+ * leaked to the client).
  */
 
 import { NextResponse } from "next/server";
 import { withGateway } from "@/lib/gateway";
-import type { ProxyResponse } from "@/lib/types";
+import { fetchPage } from "@/adapters/desaparecidos";
 
 export const GET = withGateway(async (_req, query) => {
-  const body: ProxyResponse = { items: [], page: query.page, totalPages: 0 };
-  return NextResponse.json(body, { status: 501 });
+  try {
+    const body = await fetchPage(query);
+    return NextResponse.json(body, { status: 200 });
+  } catch (err) {
+    console.error("[source:a] upstream/validation failure:", String(err));
+    return NextResponse.json(
+      { error: "upstream_unavailable", source: "a" },
+      { status: 502 },
+    );
+  }
 });
