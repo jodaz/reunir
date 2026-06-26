@@ -12,17 +12,28 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const { TEST_SECRET } = vi.hoisted(() => ({
-  TEST_SECRET: "gateway-test-secret",
-}));
+const { TEST_SECRET, prod } = vi.hoisted(() => {
+  // Set ALLOWED_ORIGIN before env.ts parses process.env (this file runs isolated under Vitest's
+  // forks pool, so it doesn't leak to the origin test that asserts the unset-in-prod throw).
+  // Needed because origin enforcement is prod-only and prod requires ALLOWED_ORIGIN.
+  process.env.ALLOWED_ORIGIN = "http://localhost:3000";
+  return {
+    TEST_SECRET: "gateway-test-secret",
+    // Controllable production flag — origin enforcement (checkCors) is prod-only, so the CORS
+    // reject test flips this on. Defaults false so all other tests run in dev mode.
+    prod: { value: false },
+  };
+});
 
-// Force the token gate ON regardless of env (no real Turnstile secret in tests).
+// Force the token gate ON regardless of env (no real Turnstile secret in tests); make
+// isProduction() controllable via `prod.value`.
 vi.mock("@/lib/security/config", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@/lib/security/config")>();
   return {
     ...actual,
     gateDecision: () => ({ mode: "active", sessionSecret: TEST_SECRET }),
+    isProduction: () => prod.value,
   };
 });
 
@@ -134,14 +145,27 @@ describe("token gate (PRD §5.1)", () => {
 });
 
 describe("CORS / origin (PRD §5.2)", () => {
-  it("disallowed origin → 403, not reflected", async () => {
+  it("disallowed origin → 403 (prod), not reflected", async () => {
+    prod.value = true; // origin enforcement is prod-only
+    try {
+      const res = await getTerremoto(
+        makeReq({ cookie: await validCookie(), origin: "https://evil.example" }),
+      );
+      expect(res.status).toBe(403);
+      expect(res.headers.get("access-control-allow-origin")).not.toBe(
+        "https://evil.example",
+      );
+    } finally {
+      prod.value = false;
+    }
+  });
+
+  it("disallowed origin in DEV → allowed (not enforced)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawC()));
     const res = await getTerremoto(
       makeReq({ cookie: await validCookie(), origin: "https://evil.example" }),
     );
-    expect(res.status).toBe(403);
-    expect(res.headers.get("access-control-allow-origin")).not.toBe(
-      "https://evil.example",
-    );
+    expect(res.status).toBe(200); // dev: checkCors is a no-op
   });
 
   it("allowed origin → reflected on the response", async () => {

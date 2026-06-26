@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { QuerySchema, type Query } from "@/schemas/proxy";
 import { buildCacheKey, getCachedBody, setCachedBody } from "@/lib/cache";
-import { gateDecision } from "@/lib/security/config";
+import { gateDecision, isProduction } from "@/lib/security/config";
 import { verifySessionToken, tokenFingerprint, SESSION_COOKIE } from "@/lib/security/token";
 import { rateLimit, assertLimiterBackend } from "@/lib/security/ratelimit";
 import {
@@ -68,7 +68,10 @@ const checkToken: GuardHook = async (req) => {
 // --- 2. CORS allowlist / Origin check (PRD §5.2) -------------------------------------
 
 const checkCors: GuardHook = (req) => {
-  if (isCrossOrigin(req)) {
+  // Origin enforcement is a PROD protection (the token gate is the primary control). In dev the
+  // port varies (e.g. :3001 when :3000 is taken) so a strict origin 403 just blocks local work —
+  // skip it. Prod still rejects any non-allowlisted origin.
+  if (isProduction() && isCrossOrigin(req)) {
     return NextResponse.json({ error: "forbidden_origin" }, { status: 403 });
   }
   return null;
