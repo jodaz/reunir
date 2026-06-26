@@ -41,11 +41,18 @@ const EnvSchema = z.object({
   BREAKER_FAILURE_THRESHOLD: z.coerce.number().int().positive().default(5),
   BREAKER_COOLDOWN_MS: z.coerce.number().int().positive().default(15000),
 
-  // --- Self-protection: token gate / rate limit (Cycle 5; unset = disabled in dev) ---
+  // --- Self-protection: token gate / rate limit ---
   TURNSTILE_SITE_KEY: z.string().optional().default(""),
   TURNSTILE_SECRET_KEY: z.string().optional().default(""),
   SESSION_TOKEN_SECRET: z.string().optional().default(""),
-  ALLOWED_ORIGIN: z.string().default("http://localhost:3000"),
+  // Optional Turnstile action — when set, the widget sends it and siteverify must echo it.
+  TURNSTILE_ACTION: z.string().optional().default(""),
+  // Explicit dev opt-in to DISABLE the gate (fail-closed by default — see lib/security/config).
+  // "1"/"true" disables; absence is NOT a disable signal (the gate stays closed without secrets).
+  GATE_DISABLED: z.string().optional().default(""),
+  // No default origin: REQUIRED in production (enforced at request time in lib/security/origin),
+  // so an unset value can never silently 403 every real same-origin relative via a stale default.
+  ALLOWED_ORIGIN: z.string().optional(),
   RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(30),
 
   // --- Server-enforced caps (PRD §5.4) ---
@@ -72,4 +79,14 @@ export const isCacheEnabled = Boolean(
 );
 export const isTokenGateEnabled = Boolean(
   env.TURNSTILE_SECRET_KEY && env.SESSION_TOKEN_SECRET,
+);
+
+/**
+ * Rate-limit store readiness — decided by its OWN backing creds, NOT `isCacheEnabled`. They
+ * happen to share the Upstash instance today, but the limiter must answer "am I durable?"
+ * independently so a prod gate is never silently backed by a per-isolate in-memory counter
+ * (see lib/security/ratelimit `assertLimiterBackend`).
+ */
+export const isRateLimitStoreEnabled = Boolean(
+  env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN,
 );

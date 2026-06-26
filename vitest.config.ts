@@ -14,5 +14,11 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.{test,spec}.ts"],
+    // The gate is fail-closed by default (lib/security/config): without secrets it THROWS unless
+    // explicitly opted out. Tests that exercise the disabled path opt in here; tests that need
+    // the gate ACTIVE mock `gateDecision` per-file.
+    env: {
+      GATE_DISABLED: "1",
+    },
   },
 });
