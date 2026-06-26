@@ -6,15 +6,16 @@
  *   1. Turnstile session-token check  → 401            (Cycle 5)
  *   2. CORS allowlist / Origin check                    (Cycle 5)
  *   3. per-IP / per-token rate limit   → 429 + Retry-After (Cycle 5)
- *   4. server-side cache lookup/store, keyed on normalized query (Cycle 4)
+ *   4. server-side cache lookup/store, keyed on normalized query (Cycle 3 — WIRED)
  *   5. pageSize cap + non-empty `q` enforcement via QuerySchema (active from M1)
  *
- * In M1 steps 1–4 are typed no-op hooks (always "continue"); step 5 is fully wired so
- * the §5.4 caps are enforced today. Cycles 4/5 fill the hooks without touching routes.
+ * Steps 1–3 remain typed no-op hooks (Cycle 4 fills them WITHOUT touching this file's
+ * cache wiring); step 4 is wired in Cycle 3; step 5 enforces the §5.4 caps today.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { QuerySchema, type Query } from "@/schemas/proxy";
+import { buildCacheKey, getCachedBody, setCachedBody } from "@/lib/cache";
 
 /** A source handler: receives the validated query and returns the proxy response. */
 export type GatewayHandler = (
@@ -76,8 +77,32 @@ export function withGateway(handler: GatewayHandler) {
       );
     }
 
-    // 4: cache lookup (no-op in M1) → handler → cache store (no-op in M1).
-    // TODO(Cycle 4): cache keyed on normalized query, ttl = env.CACHE_TTL_SECONDS.
-    return handler(req, parsed.data);
+    // 4: server-side politeness cache (Cycle 3). Keyed on the normalized query + source
+    // path, so a scraper hammering OUR API turns into ZERO upstream calls on a HIT. The
+    // route path (`/api/sources/<source>`) namespaces the key per source.
+    const cacheKey = buildCacheKey(req.nextUrl.pathname, parsed.data);
+
+    const hit = await getCachedBody(cacheKey);
+    if (hit) {
+      return NextResponse.json(hit.body, {
+        status: 200,
+        headers: { "x-reunir-cache": "HIT" },
+      });
+    }
+
+    const response = await handler(req, parsed.data);
+
+    // Only cache successful proxy bodies — never 502s / breaker fast-fails (a transient
+    // upstream outage must not get pinned in cache and hide recovery).
+    if (response.status === 200) {
+      try {
+        const body = await response.clone().json();
+        await setCachedBody(cacheKey, { body });
+      } catch {
+        // Non-JSON or read failure → skip caching, return the live response untouched.
+      }
+    }
+
+    return response;
   };
 }

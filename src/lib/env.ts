@@ -24,10 +24,22 @@ const EnvSchema = z.object({
   SOURCE_C_BASE_URL: z.string().default("https://terremotovenezuela.app"),
   // Source B is "not connected" by design (ADR 0001) — no base URL.
 
-  // --- Server-side politeness cache (Cycle 4; unset = no cache) ---
+  // --- Server-side politeness cache (Cycle 3; unset = no Upstash, in-memory fallback) ---
   UPSTASH_REDIS_REST_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(""),
   CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+
+  // --- Outbound politeness: timeout / retry / circuit breaker (Cycle 3) ---
+  // Per-source request timeout (ms). Each retry attempt gets its own fresh timeout.
+  UPSTREAM_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
+  // Total attempts per call (1 = no retry). Bounded so backoff never amplifies load.
+  UPSTREAM_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(3),
+  // Exponential backoff base / ceiling (ms). Actual delay = min(base * 2^n, max) + jitter.
+  UPSTREAM_BACKOFF_BASE_MS: z.coerce.number().int().min(0).default(200),
+  UPSTREAM_BACKOFF_MAX_MS: z.coerce.number().int().min(0).default(2000),
+  // Circuit breaker: consecutive transient failures that trip OPEN, and the OPEN cooldown.
+  BREAKER_FAILURE_THRESHOLD: z.coerce.number().int().positive().default(5),
+  BREAKER_COOLDOWN_MS: z.coerce.number().int().positive().default(15000),
 
   // --- Self-protection: token gate / rate limit (Cycle 5; unset = disabled in dev) ---
   TURNSTILE_SITE_KEY: z.string().optional().default(""),
