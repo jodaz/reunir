@@ -8,6 +8,19 @@ Adapter pipeline (every source): fetch upstream → repair encoding → Zod-vali
 → map to `Person` → strip sensitive fields → cap `pageSize` (max ~48) → return
 `{ items: Person[], page, totalPages }`.
 
+## M0 decision carried in (see `docs/adr/0001-source-b-decision.md`)
+Cycle 0 settled Source B: **ship a well-formed "not connected" stub now, no Turnstile bypass
+ever.** Rationale that affects this cycle:
+- **Build A and C live; B is a deterministic stub** (`/api/sources/vtb` → `not_connected`).
+- **Shared `reconexion` upstream is likely.** Source C's JSON already embeds Source B's media
+  URLs *and* the same `reconexion-api-images` S3 bucket (AWS acct `147455119818`) that Source A
+  uses. So B's records may already surface through C — **measure C's coverage against known B
+  records during this cycle** before anyone considers a fourth scraper (open follow-up).
+- **Never ingest B's `idNumber` (cédula) or `reporter` {name,phone,email}** — the very fields
+  `Person` must never carry. This is also why `mapToPerson` is the single strip point for A/C.
+- Outreach for a sanctioned B feed proceeds asynchronously (maintainer task); it does not gate
+  this cycle.
+
 ## Shared adapter infrastructure
 - [ ] Zod schemas for each raw upstream response (catch upstream redeploys at the boundary).
 - [ ] `mapToPerson()` per source; central place to strip sensitive fields.

@@ -1,0 +1,12 @@
+# Build / deps
+.next/
+out/
+build/
+node_modules/
+package-lock.json
+
+# Planning docs & ADRs — owned content, not auto-formatted
+*.md
+docs/
+tasks/
+.claude/

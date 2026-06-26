@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Greenfield. There is **no application code, build system, or tests yet** — only planning docs. The full design lives in `PRD.md` ("Reunir — Workplan"); read it before doing architectural work. Do not invent build/lint/test commands; none exist until the scaffold (Milestone 1) lands. When you create the scaffold, replace this section with the real commands.
+Scaffold (Cycle 0 / Milestone 1) has landed: Next.js (App Router, TypeScript, `src/` dir, CSS Modules) with the canonical `Person` type, Zod schemas, the three `/api/sources/*` routes (Source B = "not connected" stub), the `withGateway`/`fetchUpstream` protection seams (placeholders), and a TanStack Query provider. Live Source A/C data, encoding repair, cache, and the token gate land in later cycles. The full design lives in `PRD.md` ("Reunir — Workplan"); ADRs are in `docs/adr/`.
+
+### Commands
+
+```bash
+npm install        # install deps
+npm run dev        # start the dev server (http://localhost:3000)
+npm run build      # production build
+npm run start      # serve the production build
+npm run lint       # ESLint (eslint-config-next)
+npm run format     # Prettier (writes in place; planning docs are ignored)
+npm run test       # Vitest (unit tests; mapping/fixtures land in Cycle 1)
+```
 
 ## What this project is
 

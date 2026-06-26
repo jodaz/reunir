@@ -210,7 +210,7 @@ heavier auth only if you see real abuse.
 
 | # | Milestone | Definition of done |
 |---|---|---|
-| 0 | **Source B decision** | Authorized feed obtained, or B scoped out. No Turnstile bypass. Check for a shared `reconexion` upstream first. |
+| 0 | **Source B decision** | ✅ Decided (`docs/adr/0001`): "not connected" stub now, no Turnstile bypass; shared `reconexion` upstream likely → confirm C-vs-B coverage before any scraper. |
 | 1 | Repo scaffold | Next.js + TS, CSS Modules, canonical `Person` type, Zod schemas |
 | 2 | Adapters A & C live | Real data through proxy, encoding repaired, Zod-validated |
 | 3 | UI wired to `useQueries` | Independent loading, lamps, filter, all states |
@@ -223,7 +223,10 @@ heavier auth only if you see real abuse.
 
 ## 7. Open questions
 - Is there a canonical `reconexion` upstream the three apps already share? (Found shared S3
-  photo buckets — worth confirming before building a fourth scraper.)
+  photo buckets — worth confirming before building a fourth scraper.) **Update (M0,
+  `docs/adr/0001-source-b-decision.md`):** strong circumstantial evidence yes — Source C's JSON
+  embeds Source B's media URLs and the same `reconexion-api-images` S3 bucket as Source A.
+  Confirm empirically (C-vs-B coverage) in Cycle 1/2 before building a B scraper.
 - Can any source project give you a sanctioned feed or webhook instead of polling?
 - Photo handling: hotlink vs proxy-and-cache — privacy vs reliability tradeoff.
 - When to introduce the datastore (trigger: moving off pure live fan-out).
