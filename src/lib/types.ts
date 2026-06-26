@@ -30,12 +30,14 @@ export interface ProxyResponse {
 }
 
 /**
- * Source B ("not connected") explicit state, so the UI can branch on it without
- * guessing. Returned by `adapters/vtb.ts` (see ADR 0001 — Source B is a stub by design,
- * no Turnstile automation, ever).
+ * A source's explicit "not connected" state, so the UI can branch on it without guessing.
+ * Source A (desaparecidos) now returns this: its `/api/personas` requires a Google reCAPTCHA
+ * token (HTTP 403 "Verificación reCAPTCHA requerida") and we do NOT bypass human-verification
+ * gates — A re-connects only via a sanctioned feed. (`source: "b"` is retained for symmetry /
+ * any future stubbed source; it is not otherwise in use now that B reads its open data feed.)
  */
 export interface NotConnectedResponse {
   status: "not_connected";
-  source: "b";
+  source: "a" | "b";
   reason: string; // short, user-facing, e.g. "Fuente no conectada"
 }

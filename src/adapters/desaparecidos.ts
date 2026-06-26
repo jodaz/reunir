@@ -2,16 +2,36 @@
  * Source A — desaparecidos (`/api/personas`). Clean JSON, Spanish fields, epoch-ms
  * timestamps. Status: `estado === "localizado"` -> "found", else "missing".
  *
- * Pipeline: `fetchUpstream` -> byte-level UTF-8 decode -> raw Zod validate -> `mapToPerson`
- * (the sole place sensitive fields drop) -> `{ items, page, totalPages }`. The upstream's
- * `localizado*` / reporter fields are sensitive and are never read into `Person`.
+ * NOTE (2026-06): A's `/api/personas` now requires a Google reCAPTCHA token — it answers
+ * HTTP 403 `{"error":"ForbiddenError","message":"Verificación reCAPTCHA requerida"}` to
+ * unauthenticated reads. We do NOT bypass human-verification gates, so the ROUTE returns a
+ * "not connected" stub (see `getNotConnected` and `app/api/sources/desaparecidos/route.ts`)
+ * and does NOT call `fetchPage`. The `fetchPage` / `mapToPerson` / raw schema below are kept
+ * intact and tested, ready to re-connect the moment A offers a sanctioned (token-free) feed.
+ *
+ * Pipeline (when reconnected): `fetchUpstream` -> byte-level UTF-8 decode -> raw Zod validate
+ * -> `mapToPerson` (the sole place sensitive fields drop) -> `{ items, page, totalPages }`.
+ * The upstream's `localizado*` / reporter fields are sensitive and never read into `Person`.
  */
 
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { fetchUpstream } from "@/lib/http";
 import { repairMojibake } from "@/lib/encoding";
-import type { Person, ProxyResponse } from "@/lib/types";
+import type { NotConnectedResponse, Person, ProxyResponse } from "@/lib/types";
+
+/**
+ * The structured "not connected" marker the route returns instead of hitting A's
+ * reCAPTCHA-gated endpoint (no live fetch — also the polite choice, so we never hammer a
+ * gate we won't pass). The UI branches on this to render A's lamp as "no conectado".
+ */
+export function getNotConnected(): NotConnectedResponse {
+  return {
+    status: "not_connected",
+    source: "a",
+    reason: "Fuente no conectada",
+  };
+}
 
 // Raw upstream item. Explicit on consumed fields; not `.strict()` — upstreams add keys.
 export const RawAItemSchema = z.object({

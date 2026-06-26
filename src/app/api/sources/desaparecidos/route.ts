@@ -1,27 +1,20 @@
 /**
  * GET /api/sources/desaparecidos — Source A.
  *
- * The gateway validates/caps the query (non-empty `q`, `pageSize` <= MAX). The adapter
- * fetches upstream, repairs encoding, Zod-validates the raw shape, and maps to `Person`
- * with sensitive fields stripped. Upstream/validation failures return 502 (no detail
- * leaked to the client).
+ * A's `/api/personas` now requires a Google reCAPTCHA token (HTTP 403 "Verificación
+ * reCAPTCHA requerida" on unauthenticated reads). We do NOT bypass human-verification gates,
+ * so this route returns the structured "not connected" response — NO live fetch (which also
+ * keeps us from politely hammering a gate we won't pass). Still routed through `withGateway`
+ * so protection stays uniform across all `/api/sources/*` endpoints. The adapter's
+ * `fetchPage`/`mapToPerson` stay intact for if/when A offers a sanctioned, token-free feed.
  */
 
 import { NextResponse } from "next/server";
 import { withGateway } from "@/lib/gateway";
-import { fetchPage } from "@/adapters/desaparecidos";
+import { getNotConnected } from "@/adapters/desaparecidos";
 
-export const GET = withGateway(async (_req, query) => {
-  try {
-    const body = await fetchPage(query);
-    return NextResponse.json(body, { status: 200 });
-  } catch (err) {
-    console.error("[source:a] upstream/validation failure:", String(err));
-    return NextResponse.json(
-      { error: "upstream_unavailable", source: "a" },
-      { status: 502 },
-    );
-  }
+export const GET = withGateway(async () => {
+  return NextResponse.json(getNotConnected(), { status: 200 });
 });
 
 // CORS preflight: the same gateway fn branches on OPTIONS → preflight response (PRD §5.2).

@@ -22,7 +22,14 @@ const EnvSchema = z.object({
     .string()
     .default("https://desaparecidos-terremoto-api.theempire.tech"),
   SOURCE_C_BASE_URL: z.string().default("https://terremotovenezuela.app"),
-  // Source B is "not connected" by design (ADR 0001) — no base URL.
+  // Source B has TWO hosts: the Remix data endpoint we read (workers.dev) and the public
+  // site that serves B's media + human-facing records (`venezuelatebusca.com`, also the
+  // `/media/photos/...` host embedded in Source C's responses — see ADR 0001). The data
+  // read path is open (no Turnstile on reads; the Turnstile only guards report submission).
+  SOURCE_B_DATA_URL: z
+    .string()
+    .default("https://venezuela-te-busca-app.hellogafaro.workers.dev"),
+  SOURCE_B_BASE_URL: z.string().default("https://venezuelatebusca.com"),
 
   // --- Server-side politeness cache (Cycle 3; unset = no Upstash, in-memory fallback) ---
   UPSTASH_REDIS_REST_URL: z.string().optional().default(""),

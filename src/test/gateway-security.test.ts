@@ -30,22 +30,25 @@ import { signSessionToken } from "@/lib/security/token";
 import { resetMemoryCache } from "@/lib/cache";
 import * as cacheModule from "@/lib/cache";
 import { resetRateLimit } from "@/lib/security/ratelimit";
-import { GET as getDesaparecidos } from "@/app/api/sources/desaparecidos/route";
+// The gateway protection chain is source-agnostic; we exercise it through a LIVE route
+// (terremoto / Source C) since Source A is now a not-connected stub with no upstream fetch.
+import { GET as getTerremoto } from "@/app/api/sources/terremoto/route";
 
 const ALLOWED_ORIGIN = "http://localhost:3000";
 
-function rawA() {
+function rawC() {
   return {
-    items: [
+    people: [
       {
         id: "x1",
-        nombre: "Jose",
-        edad: 30,
-        ubicacion: "Caracas",
-        descripcion: "desc",
-        contacto: "0412",
-        foto: null,
-        estado: "sin-contacto",
+        name: "Jose",
+        age: 30,
+        description: "desc",
+        lastSeen: "Caracas",
+        contact: "0412",
+        photoUrl: null,
+        resolvedAt: null,
+        createdAt: 1,
       },
     ],
     total: 1,
@@ -73,7 +76,7 @@ interface ReqOpts {
 
 function makeReq(opts: ReqOpts = {}): NextRequest {
   const { q = "jose", page = 1, cookie, origin, ip, method = "GET" } = opts;
-  const url = `http://localhost:3000/api/sources/desaparecidos?q=${encodeURIComponent(
+  const url = `http://localhost:3000/api/sources/terremoto?q=${encodeURIComponent(
     q,
   )}&page=${page}&pageSize=24`;
   const headers = new Headers();
@@ -100,14 +103,14 @@ describe("token gate (PRD §5.1)", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
     const cacheSpy = vi.spyOn(cacheModule, "getCachedBody");
 
-    const res = await getDesaparecidos(makeReq());
+    const res = await getTerremoto(makeReq());
     expect(res.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(cacheSpy).not.toHaveBeenCalled();
   });
 
   it("invalid/garbage token → 401", async () => {
-    const res = await getDesaparecidos(
+    const res = await getTerremoto(
       makeReq({ cookie: "reunir_session=not-a-real-token" }),
     );
     expect(res.status).toBe(401);
@@ -115,24 +118,24 @@ describe("token gate (PRD §5.1)", () => {
 
   it("expired token → 401", async () => {
     const expired = await signSessionToken(TEST_SECRET, 60, Date.now() - 120_000);
-    const res = await getDesaparecidos(
+    const res = await getTerremoto(
       makeReq({ cookie: `reunir_session=${expired}` }),
     );
     expect(res.status).toBe(401);
   });
 
   it("valid signed cookie → passes the gate (200)", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawA()));
-    const res = await getDesaparecidos(makeReq({ cookie: await validCookie() }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawC()));
+    const res = await getTerremoto(makeReq({ cookie: await validCookie() }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.items[0].source).toBe("a");
+    expect(body.items[0].source).toBe("c");
   });
 });
 
 describe("CORS / origin (PRD §5.2)", () => {
   it("disallowed origin → 403, not reflected", async () => {
-    const res = await getDesaparecidos(
+    const res = await getTerremoto(
       makeReq({ cookie: await validCookie(), origin: "https://evil.example" }),
     );
     expect(res.status).toBe(403);
@@ -142,8 +145,8 @@ describe("CORS / origin (PRD §5.2)", () => {
   });
 
   it("allowed origin → reflected on the response", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawA()));
-    const res = await getDesaparecidos(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawC()));
+    const res = await getTerremoto(
       makeReq({ cookie: await validCookie(), origin: ALLOWED_ORIGIN }),
     );
     expect(res.status).toBe(200);
@@ -151,13 +154,13 @@ describe("CORS / origin (PRD §5.2)", () => {
   });
 
   it("preflight OPTIONS: allowed → 204 with CORS headers; disallowed → 403", async () => {
-    const ok = await getDesaparecidos(
+    const ok = await getTerremoto(
       makeReq({ method: "OPTIONS", origin: ALLOWED_ORIGIN }),
     );
     expect(ok.status).toBe(204);
     expect(ok.headers.get("access-control-allow-origin")).toBe(ALLOWED_ORIGIN);
 
-    const bad = await getDesaparecidos(
+    const bad = await getTerremoto(
       makeReq({ method: "OPTIONS", origin: "https://evil.example" }),
     );
     expect(bad.status).toBe(403);
@@ -166,12 +169,12 @@ describe("CORS / origin (PRD §5.2)", () => {
 
 describe("rate limiting (PRD §5.3)", () => {
   it("per-IP: over the deep-pagination cap → 429 + Retry-After", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawA()));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawC()));
     const cookie = await validCookie();
     // base 30/min → deep cap floor(30/6)=5. page>3 uses the deep bucket.
     let last: Response | undefined;
     for (let i = 0; i < 6; i++) {
-      last = await getDesaparecidos(
+      last = await getTerremoto(
         makeReq({ cookie, page: 10, ip: "9.9.9.9" }),
       );
     }
@@ -180,11 +183,11 @@ describe("rate limiting (PRD §5.3)", () => {
   });
 
   it("shallow pages use the generous cap (not the deep one)", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawA()));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawC()));
     const cookie = await validCookie();
     // 6 shallow requests (page 1) stay well under the 30/min cap → all allowed.
     for (let i = 0; i < 6; i++) {
-      const res = await getDesaparecidos(
+      const res = await getTerremoto(
         makeReq({ cookie, page: 1, ip: "8.8.8.8" }),
       );
       expect(res.status).toBe(200);
@@ -192,12 +195,12 @@ describe("rate limiting (PRD §5.3)", () => {
   });
 
   it("per-token: enforced even when the IP varies", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawA()));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(rawC()));
     const cookie = await validCookie(); // same token throughout
     let last: Response | undefined;
     for (let i = 0; i < 6; i++) {
       // Distinct IP each time → per-IP never trips; per-token must.
-      last = await getDesaparecidos(
+      last = await getTerremoto(
         makeReq({ cookie, page: 10, ip: `7.0.0.${i}` }),
       );
     }
