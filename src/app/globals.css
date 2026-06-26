@@ -1,13 +1,64 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* surfaces & lines */
+  --surface: #ffffff;
+  --surface-2: #f4f5f7;
+  --border: #e2e4e9;
+  --muted: #5b606b;
+
+  /* accent + status */
+  --accent: #1f6feb;
+  --missing: #b54708;
+  --missing-bg: #fef3e6;
+  --found: #1a7f4b;
+  --found-bg: #e8f6ee;
+  --error: #c2381a;
+  --idle: #9aa0ac;
+
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06),
+    0 1px 3px rgba(16, 24, 40, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    --surface: #141518;
+    --surface-2: #1c1e22;
+    --border: #2a2d33;
+    --muted: #a3a8b3;
+
+    --accent: #4f8bf0;
+    --missing: #f0a364;
+    --missing-bg: #2a1d10;
+    --found: #5fcf90;
+    --found-bg: #122318;
+    --error: #f08a6f;
+    --idle: #585d68;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 html {
